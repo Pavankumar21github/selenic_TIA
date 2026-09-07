@@ -21,6 +21,11 @@ jobs:
         shell: cmd
         run: |
           git diff --name-only HEAD~1 HEAD > changedfiles.txt
+
+          echo ==================================
+          echo CHANGED FILES
+          echo ==================================
+
           type changedfiles.txt
 
       - name: Find Test Classes
@@ -28,11 +33,26 @@ jobs:
         run: |
           findstr /i "Tests.java" changedfiles.txt > newtests.txt
 
+          if errorlevel 1 (
+            echo ==================================
+            echo NO NEW TEST CLASSES FOUND
+            echo ==================================
+            exit /b 0
+          )
+
+          echo ==================================
+          echo TEST CLASSES FOUND
+          echo ==================================
+
+          type newtests.txt
+
       - name: Display Tests
         shell: cmd
         run: |
           if exist newtests.txt (
-            echo New Test Classes:
+            echo ==================================
+            echo DETECTED TEST FILES
+            echo ==================================
             type newtests.txt
           ) else (
             echo No new test classes found.
