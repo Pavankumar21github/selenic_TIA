@@ -1,0 +1,70 @@
+[ 9/5/26, 1:28?PM - Initialized console 'null']
+Parasoft Jtest Coverage 2025.2.0 (10.7.3.202511031548)
+
+Using parameters: 
+-app: D:\tias\baseline\parasoft-demo-app-1.1.0.war
+-report: D:\tias\reports
+-settings: D:\parasoft_selenic_2026.1.0\selenic.properties
+-selenic
+-runtime: D:\tias\baseline\runtime_coverage
+
+License: Machine id WIN32-9869db6 (Default)
+[ 0%] > Coverage
+[ 0%] > Coverage > Computing application scope
+[ 8%]   Coverage > Computing application scope: 50% 
+[17%]   Coverage > Computing application scope: 100% 
+[17%] < Coverage > Computing application scope: 100% 
+[17%] > Coverage > Collecting application data
+[17%]   Coverage > Collecting application data: 10000
+[17%]   Coverage > Collecting application data: 20000
+[17%]   Coverage > Collecting application data: 30000
+[17%]   Coverage > Collecting application data: 40000
+[17%]   Coverage > Collecting application data: 50000
+[17%]   Coverage > Collecting application data: 58843
+[37%] < Coverage > Collecting application data
+[37%] > Coverage > Processing application data
+[38%]   Coverage > Processing application data:  5% 
+[39%]   Coverage > Processing application data: 10% 
+[41%]   Coverage > Processing application data: 15% 
+[42%]   Coverage > Processing application data: 20% 
+[44%]   Coverage > Processing application data: 25% 
+[45%]   Coverage > Processing application data: 30% 
+[46%]   Coverage > Processing application data: 35% 
+[48%]   Coverage > Processing application data: 40% 
+[49%]   Coverage > Processing application data: 45% 
+[51%]   Coverage > Processing application data: 50% 
+[52%]   Coverage > Processing application data: 55% 
+[53%]   Coverage > Processing application data: 60% 
+[55%]   Coverage > Processing application data: 65% 
+[56%]   Coverage > Processing application data: 70% 
+[58%]   Coverage > Processing application data: 75% 
+[59%]   Coverage > Processing application data: 80% 
+[60%]   Coverage > Processing application data: 85% 
+[62%]   Coverage > Processing application data: 90% 
+[63%]   Coverage > Processing application data: 95% 
+[65%]   Coverage > Processing application data: 100% 
+[65%] < Coverage > Processing application data: 100% 
+[65%] > Coverage > Processing runtime coverage
+[74%]   Coverage > Processing runtime coverage: 50% 
+[83%]   Coverage > Processing runtime coverage: 100% 
+[83%] < Coverage > Processing runtime coverage: 100% 
+[83%] > Coverage > Scanning runtime coverage
+[85%]   Coverage > Scanning runtime coverage: 50% 
+[88%]   Coverage > Scanning runtime coverage: 100% 
+[88%] < Coverage > Scanning runtime coverage: 100% 
+[88%] > Coverage > Processing runtime coverage
+[100%]   Coverage > Processing runtime coverage: 50% 
+[100%]   Coverage > Processing runtime coverage: 100% 
+[100%] < Coverage > Processing runtime coverage: 100% 
+[100%] > Coverage > Finalizing reporters
+Publication to DTP is not licensed
+Generated XML report: D:\tias\reports\coverage.xml
+Publishing reports to DTP is disabled, use report.dtp.publish setting to enable.
+=== Parasoft Coverage Summary ===
+
+Line Coverage:  3%* 51,802/1,605,026
+* - There are other coverage data not included in the summary; please review the coverage details.
+
+[100%] < Coverage > Finalizing reporters: 100% 
+Cleaning coverage data ...
+[100%] < Coverage
