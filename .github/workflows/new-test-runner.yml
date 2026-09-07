@@ -34,9 +34,7 @@ jobs:
           findstr /i "Tests.java" changedfiles.txt > newtests.txt
 
           if errorlevel 1 (
-            echo ==================================
-            echo NO NEW TEST CLASSES FOUND
-            echo ==================================
+            echo No new test classes found.
             exit /b 0
           )
 
@@ -46,14 +44,23 @@ jobs:
 
           type newtests.txt
 
-      - name: Display Tests
+      - name: Execute New Test Classes
         shell: cmd
         run: |
-          if exist newtests.txt (
-            echo ==================================
-            echo DETECTED TEST FILES
-            echo ==================================
-            type newtests.txt
-          ) else (
-            echo No new test classes found.
+
+          for /f %%i in (newtests.txt) do (
+
+            for %%j in ("%%i") do (
+
+              echo.
+              echo ==================================
+              echo Processing %%~nj
+              echo ==================================
+
+              mvn test ^
+              -Dtest=%%~nj ^
+              -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" ^
+              -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+
+            )
           )
