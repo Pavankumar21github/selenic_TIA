@@ -28,18 +28,30 @@ jobs:
 
           type changedfiles.txt
 
-      - name: Find Test Classes
+      - name: Find New Java Test Files
         shell: cmd
         run: |
-          findstr /i "Tests.java" changedfiles.txt > newtests.txt
 
-          if errorlevel 1 (
-            echo No new test classes found.
+          if exist newtests.txt del newtests.txt
+
+          for /f %%i in (changedfiles.txt) do (
+
+            echo %%i | findstr /i "src/test/java" >nul
+
+            if not errorlevel 1 (
+              echo %%i>>newtests.txt
+            )
+          )
+
+          if not exist newtests.txt (
+            echo ==================================
+            echo NO NEW TEST FILES FOUND
+            echo ==================================
             exit /b 0
           )
 
           echo ==================================
-          echo TEST CLASSES FOUND
+          echo TEST FILES FOUND
           echo ==================================
 
           type newtests.txt
@@ -48,13 +60,18 @@ jobs:
         shell: cmd
         run: |
 
+          if not exist newtests.txt (
+            echo No tests to execute.
+            exit /b 0
+          )
+
           for /f %%i in (newtests.txt) do (
 
             for %%j in ("%%i") do (
 
               echo.
               echo ==================================
-              echo Processing %%~nj
+              echo Running %%~nj
               echo ==================================
 
               mvn test ^
