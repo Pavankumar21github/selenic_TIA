@@ -1,1 +1,44 @@
+name: Execute New Test Classes
 
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  execute-new-tests:
+
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find New Test Classes
+        shell: powershell
+        run: |
+
+          $changedFiles = git diff --name-only HEAD~1 HEAD
+
+          $newTests = $changedFiles |
+            Where-Object {
+              $_ -like "*Tests.java"
+            }
+
+          if ($newTests.Count -eq 0) {
+            Write-Host "No new test classes found."
+            exit 0
+          }
+
+          $newTests | Out-File newtests.txt
+
+      - name: Display Tests
+        shell: powershell
+        run: |
+
+          if (Test-Path newtests.txt) {
+              Get-Content newtests.txt
+          }
