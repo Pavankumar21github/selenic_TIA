@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
+Remove-Item testclasses.txt -ErrorAction SilentlyContinue
 
 $changedFiles = git diff --name-only HEAD~1 HEAD
 
@@ -10,42 +10,21 @@ foreach ($file in $changedFiles) {
         continue
     }
 
-    Write-Host "Checking file: $file"
-
     $className = [System.IO.Path]::GetFileNameWithoutExtension($file)
 
     $diff = git diff HEAD~1 HEAD -- $file
 
-    $lines = $diff -split "`n"
+    if ($diff -match '^\+.*@Test') {
 
-    for ($i = 0; $i -lt $lines.Count; $i++) {
+        Write-Host "Detected new @Test in $className"
 
-        if ($lines[$i].Trim() -match '^\+\s*@Test') {
-
-            for ($j = $i + 1; $j -lt $lines.Count; $j++) {
-
-                if ($lines[$j] -match '^\+.*public\s+void\s+([A-Za-z0-9_]+)\s*\(') {
-
-                    $methodName = $Matches[1]
-
-                    $testIdentifier = "${className}#${methodName}"
-
-                    Write-Host "Detected: $testIdentifier"
-
-                    Add-Content tests-to-run.txt $testIdentifier
-
-                    break
-                }
-            }
-        }
+        Add-Content testclasses.txt $className
     }
 }
 
-if (Test-Path tests-to-run.txt) {
-    Write-Host ""
-    Write-Host "Detected Tests:"
-    Get-Content tests-to-run.txt
+if (Test-Path testclasses.txt) {
+    Get-Content testclasses.txt
 }
 else {
-    Write-Host "No new test methods detected."
+    Write-Host "No new @Test annotations found."
 }
