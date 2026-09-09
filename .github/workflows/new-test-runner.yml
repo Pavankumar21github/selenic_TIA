@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 2
 
       - name: Detect New Test Methods
-        shell: powershell
+        shell: pwsh
         run: |
 
           Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
@@ -84,7 +84,7 @@ jobs:
           }
 
       - name: Execute New Test Methods
-        shell: powershell
+        shell: pwsh
         run: |
 
           if (!(Test-Path tests-to-run.txt)) {
