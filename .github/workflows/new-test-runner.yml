@@ -1,4 +1,4 @@
-name: Execute New Test Classes
+name: Execute New Test Methods
 
 on:
   push:
@@ -17,67 +17,92 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Find Changed Files
-        shell: cmd
-        run: |
-          git diff --name-only HEAD~1 HEAD > changedfiles.txt
-
-          echo ==================================
-          echo CHANGED FILES
-          echo ==================================
-
-          type changedfiles.txt
-
-      - name: Find New Java Test Files
-        shell: cmd
+      - name: Detect New Test Methods
+        shell: powershell
         run: |
 
-          if exist newtests.txt del newtests.txt
+          Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
 
-          for /f %%i in (changedfiles.txt) do (
+          $changedFiles = git diff --name-only HEAD~1 HEAD
 
-            echo %%i | findstr /i "src/test/java" >nul
+          foreach ($file in $changedFiles) {
 
-            if not errorlevel 1 (
-              echo %%i>>newtests.txt
-            )
-          )
+            if ($file -notmatch '^src/test/java/.*\.java$') {
+              continue
+            }
 
-          if not exist newtests.txt (
-            echo ==================================
-            echo NO NEW TEST FILES FOUND
-            echo ==================================
-            exit /b 0
-          )
+            Write-Host "Checking $file"
 
-          echo ==================================
-          echo TEST FILES FOUND
-          echo ==================================
+            $className = [System.IO.Path]::GetFileNameWithoutExtension($file)
 
-          type newtests.txt
+            $diff = git diff HEAD~1 HEAD -- $file
 
-      - name: Execute New Test Classes
-        shell: cmd
+            $lines = $diff -split "`n"
+
+            for ($i = 0; $i -lt $lines.Count; $i++) {
+
+              $currentLine = $lines[$i].Trim()
+
+              if ($currentLine -match '^\+\s*@Test') {
+
+                for ($j = $i; $j -lt [Math]::Min($i +ines.Count); $j++) {
+
+                  $methodLine = $lines[$j]
+
+                  if ($methodLine -match '^\+.*public\s+void\s+([A-Za-z0-9_]+)\s*\(') {
+
+                    $methodName = $Matches[1]
+
+                    $testIdentifier = "$className#$methodName"
+
+                    Write-Host "Detected new test: $testIdentifier"
+
+                    Add-Content tests-to-run.txt $testIdentifier
+
+                    break
+                  }
+                }
+              }
+            }
+          }
+
+          if (Test-Path tests-to-run.txt) {
+
+            Write-Host ""
+            Write-Host "=================================="
+            Write-Host "NEW TEST METHODS DETECTED"
+            Write-Host "=================================="
+
+            Get-Content tests-to-run.txt
+
+          } else {
+
+            Write-Host ""
+            Write-Host "=================================="
+            Write-Host "NO NEW TEST METHODS DETECTED"
+            Write-Host "=================================="
+          }
+
+      - name: Execute New Test Methods
+        shell: powershell
         run: |
 
-          if not exist newtests.txt (
-            echo No tests to execute.
-            exit /b 0
-          )
+          if (!(Test-Path tests-to-run.txt)) {
+            Write-Host "Nothing to execute."
+            exit 0
+          }
 
-          for /f %%i in (newtests.txt) do (
+          $tests = Get-Content tests-to-run.txt
 
-            for %%j in ("%%i") do (
+          foreach ($test in $tests) {
 
-              echo.
-              echo ==================================
-              echo Running %%~nj
-              echo ==================================
+            Write-Host ""
+            Write-Host "=================================="
+            Write-Host "Executing $test"
+            Write-Host "=================================="
 
-              mvn test ^
-              -Dtest=%%~nj ^
-              -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" ^
-              -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
-
-            )
-          )
+            mvn test `
+            -Dtest=$test `
+            -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+            -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+          }
