@@ -31,21 +31,20 @@ jobs:
               continue
             }
 
-            Write-Host "Checking $file"
+            Write-Host "Checking file: $file"
 
             $className = [System.IO.Path]::GetFileNameWithoutExtension($file)
 
             $diff = git diff HEAD~1 HEAD -- $file
-
             $lines = $diff -split "`n"
 
             for ($i = 0; $i -lt $lines.Count; $i++) {
 
-              $currentLine = $lines[$i].Trim()
+              $line = $lines[$i].Trim()
 
-              if ($currentLine -match '^\+\s*@Test') {
+              if ($line -match '^\+.*@Test') {
 
-                for ($j = $i; $j -lt [Math]::Min($i +ines.Count); $j++) {
+                for ($j = $i; $j -lt [Math]::+ 20, $lines.Count); $j++) {
 
                   $methodLine = $lines[$j]
 
@@ -53,11 +52,11 @@ jobs:
 
                     $methodName = $Matches[1]
 
-                    $testIdentifier = "$className#$methodName"
+                    $testId = "$className#$methodName"
 
-                    Write-Host "Detected new test: $testIdentifier"
+                    Write-Host "Detected: $testId"
 
-                    Add-Content tests-to-run.txt $testIdentifier
+                    Add-Content tests-to-run.txt $testId
 
                     break
                   }
@@ -70,12 +69,13 @@ jobs:
 
             Write-Host ""
             Write-Host "=================================="
-            Write-Host "NEW TEST METHODS DETECTED"
+            Write-Host "TEST METHODS DETECTED"
             Write-Host "=================================="
 
             Get-Content tests-to-run.txt
 
-          } else {
+          }
+          else {
 
             Write-Host ""
             Write-Host "=================================="
@@ -98,11 +98,11 @@ jobs:
 
             Write-Host ""
             Write-Host "=================================="
-            Write-Host "Executing $test"
+            Write-Host "Running $test"
             Write-Host "=================================="
 
             mvn test `
-            -Dtest=$test `
-            -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
-            -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+              -Dtest="$test" `
+              -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+              -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
           }
