@@ -20,35 +20,29 @@ jobs:
       - name: Detect New Test Methods
         shell: powershell
         run: |
+          .\scripts\Detect-NewTests.ps1
 
-          Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
+      - name: Execute New Test Methods
+        shell: powershell
+        run: |
 
-          $changedFiles = git diff --name-only HEAD~1 HEAD
+          if (!(Test-Path tests-to-run.txt)) {
+              Write-Host "No tests to execute."
+              exit 0
+          }
 
-          foreach ($file in $changedFiles) {
+          $tests = Get-Content tests-to-run.txt
 
-              if ($file -notmatch '^src/test/java/.*\.java$') {
-                  continue
+          foreach ($test in $tests) {
+
+              Write-Host "Executing $test"
+
+              mvn test `
+                "-Dtest=$test" `
+                "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+                "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Execution failed for $test"
               }
-
-              Write-Host "Checking file: $file"
-
-              $className = [System.IO.Path]::GetFileNameWithoutExtension($file)
-
-              $diff = git diff HEAD~1 HEAD -- $file
-
-              $lines = $diff -split "`r?`n"
-
-              for ($i = 0; $i -lt $lines.Count; $i++) {
-
-                  if ($lines[$i].Trim() -match '^\+\s*@Test') {
-
-                      for ($j = $i + 1; $j -lt $lines.Count; $j++) {
-
-                          $line = $lines[$j]
-
-                          if ($line -match '^\+.*public\s+void\s+([A-Za-z0-9_]+)\s*\(') {
-
-                              $methodName = $Matches[1]
-
-                              $testIdentifier = "$className#$
+          }
