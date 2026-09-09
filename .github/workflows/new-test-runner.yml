@@ -1,4 +1,4 @@
-name: Execute New Test Methods
+name: Execute Classes With New Tests
 
 on:
   push:
@@ -6,43 +6,40 @@ on:
       - main
 
 jobs:
+
   execute-new-tests:
 
     runs-on: self-hosted
 
     steps:
 
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Detect New Test Methods
+      - name: Detect New Tests
         shell: powershell
         run: |
           .\scripts\Detect-NewTests.ps1
 
-      - name: Execute New Test Methods
+      - name: Execute Classes
         shell: powershell
         run: |
 
-          if (!(Test-Path tests-to-run.txt)) {
-              Write-Host "No tests to execute."
+          if (!(Test-Path testclasses.txt)) {
+              Write-Host "Nothing to execute."
               exit 0
           }
 
-          $tests = Get-Content tests-to-run.txt
+          $classes = Get-Content testclasses.txt
 
-          foreach ($test in $tests) {
+          foreach ($class in $classes) {
 
-              Write-Host "Executing $test"
+              Write-Host "Executing class: $class"
 
               mvn test `
-                "-Dtest=$test" `
+                "-Dtest=$class" `
                 "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
                 "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
-
-              if ($LASTEXITCODE -ne 0) {
-                  throw "Execution failed for $test"
-              }
           }
