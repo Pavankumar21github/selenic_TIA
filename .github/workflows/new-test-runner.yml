@@ -18,91 +18,61 @@ jobs:
           fetch-depth: 2
 
       - name: Detect New Test Methods
-        shell: pwsh
+        shell: powershell
         run: |
-
           Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
-
           $changedFiles = git diff --name-only HEAD~1 HEAD
-
           foreach ($file in $changedFiles) {
-
             if ($file -notmatch '^src/test/java/.*\.java$') {
               continue
             }
-
-            Write-Host "Checking file: $file"
-
+            Write-Host "Checking $file"
             $className = [System.IO.Path]::GetFileNameWithoutExtension($file)
-
             $diff = git diff HEAD~1 HEAD -- $file
             $lines = $diff -split "`n"
-
             for ($i = 0; $i -lt $lines.Count; $i++) {
-
-              $line = $lines[$i].Trim()
-
-              if ($line -match '^\+.*@Test') {
-
-                for ($j = $i; $j -lt [Math]::+ 20, $lines.Count); $j++) {
-
+              $currentLine = $lines[$i].Trim()
+              if ($currentLine -match '^\+\s*@Test') {
+                for ($j = $i; $j -lt [Math]::Min($i +ines.Count); $j++) {
                   $methodLine = $lines[$j]
-
                   if ($methodLine -match '^\+.*public\s+void\s+([A-Za-z0-9_]+)\s*\(') {
-
                     $methodName = $Matches[1]
-
-                    $testId = "$className#$methodName"
-
-                    Write-Host "Detected: $testId"
-
-                    Add-Content tests-to-run.txt $testId
-
+                    $testIdentifier = "$className#$methodName"
+                    Write-Host "Detected new test: $testIdentifier"
+                    Add-Content tests-to-run.txt $testIdentifier
                     break
                   }
                 }
               }
             }
           }
-
           if (Test-Path tests-to-run.txt) {
-
             Write-Host ""
             Write-Host "=================================="
-            Write-Host "TEST METHODS DETECTED"
+            Write-Host "NEW TEST METHODS DETECTED"
             Write-Host "=================================="
-
             Get-Content tests-to-run.txt
-
-          }
-          else {
-
+          } else {
             Write-Host ""
             Write-Host "=================================="
             Write-Host "NO NEW TEST METHODS DETECTED"
             Write-Host "=================================="
           }
-
       - name: Execute New Test Methods
-        shell: pwsh
+        shell: powershell
         run: |
-
           if (!(Test-Path tests-to-run.txt)) {
             Write-Host "Nothing to execute."
             exit 0
           }
-
           $tests = Get-Content tests-to-run.txt
-
           foreach ($test in $tests) {
-
             Write-Host ""
             Write-Host "=================================="
-            Write-Host "Running $test"
+            Write-Host "Executing $test"
             Write-Host "=================================="
-
             mvn test `
-              -Dtest="$test" `
-              -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
-              -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+            -Dtest=$test `
+            -DargLine="-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+            -Dwebdriver.chrome.driver="D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
           }
