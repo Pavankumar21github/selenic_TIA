@@ -125,25 +125,36 @@ jobs:
           $issueKey = Get-Content issue.txt
 
           if (Test-Path execution-status.txt) {
-            $results = Get-Content execution-status.txt | Out-String
+              $results = Get-Content execution-status.txt | Out-String
           }
           else {
-            $results = "No execution results generated."
+              $results = "No execution results generated."
           }
 
           $buildUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          $commentText = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nGitHub Run:`n$buildUrl"
+          $comment = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nGitHub Run:`n$buildUrl"
 
           $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
           $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
-          $encoded = [System.Convert]::ToBase64String($bytes)
+          $base64 = [System.Convert]::ToBase64String($bytes)
 
           $headers = @{
-            Authorization = "Basic $encoded"
-            Accept = "application/json"
-            "Content-Type" = "application/json"
+              Authorization = "Basic $base64"
+              Accept = "application/json"
+              "Content-Type" = "application/json"
           }
 
           $body = @{
- 
+              body = $comment
+          } | ConvertTo-Json
+
+          Write-Host "Updating Jira Issue: $issueKey"
+
+          Invoke-RestMethod `
+              -Uri "$($env:JIRA_URL)/rest/api/2/issue/$issueKey/comment" `
+              -Method POST `
+              -Headers $headers `
+              -Body $body
+
+          Write-Host "Jira updated successfully."ly."
