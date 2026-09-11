@@ -1,8 +1,3 @@
 {
-  "LoginLogoutScenarioTests": [
-    "testLoginAndLogoutScenario"
-  ],
-  "OrderWizardScenarioTests": [
-    "testOrderWizardScenario"
-  ]
+  "executedTests": {}
 }
