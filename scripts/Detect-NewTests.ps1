@@ -1,7 +1,7 @@
-$historyFile = ".history/executed-tests.json"
+$historyFile = ".history/executed-classes.json"
 
 if (!(Test-Path $historyFile)) {
-    '{"executedTests":{}}' | Out-File $historyFile
+    '{"executedClasses":[]}' | Set-Content $historyFile
 }
 
 $history = Get-Content $historyFile -Raw | ConvertFrom-Json
@@ -22,15 +22,9 @@ foreach ($file in $changedFiles) {
 
     $diff = git diff HEAD~1 HEAD -- $file
 
-    if ($diff -match '^\+.*@Test') {
+    if ($diff -match '(?m)^\+.*@Test') {
 
-        $alreadyExecuted = $false
-
-        if ($history.executedTests.PSObject.Properties.Name -contains $className) {
-            $alreadyExecuted = $true
-        }
-
-        if (-not $alreadyExecuted) {
+        if ($history.executedClasses -notcontains $className) {
 
             Write-Host "New test detected in $className"
 
