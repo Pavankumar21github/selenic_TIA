@@ -10,7 +10,7 @@ if (Test-Path tests-to-run.txt) {
     Remove-Item tests-to-run.txt
 }
 
-$changedFiles = git diff HEAD~1 HEAD --name-only
+$matchingClasses = Get-Content matching-classes.txt
 
 foreach ($file in $changedFiles) {
 
