@@ -26,10 +26,10 @@ jobs:
         shell: powershell
         run: |
 
-          $issueKey = Get-Content issue.txt
+          $issueKey = (Get-Content issue.txt).Trim()
 
-          if (Test-Path tests-to-run.txt) {
-            Remove-Item tests-to-run.txt
+          if (Test-Path "matching-classes.txt") {
+            Remove-Item "matching-classes.txt"
           }
 
           Get-ChildItem `
@@ -45,13 +45,22 @@ jobs:
 
               Write-Host "Found: $($_.BaseName)"
 
-              Add-Content matching-classes.txt $_.BaseName
+              Add-Content "matching-classes.txt" $_.BaseName
             }
           }
 
-          if (Test-Path matching-classes.txt) {
-            Remove-Item matching-classes.txt
-             }
+          if (!(Test-Path "matching-classes.txt")) {
+
+            throw "No test classes found for $issueKey"
+
+          }
+
+          Write-Host ""
+          Write-Host "====================================="
+          Write-Host "MATCHING CLASSES"
+          Write-Host "====================================="
+
+          Get-Content "matching-classes.txt"
 
       - name: Detect New Tests
         shell: powershell
