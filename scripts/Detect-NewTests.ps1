@@ -1,8 +1,16 @@
-$ErrorActionPreference = "Stop"
+$historyFile = ".history/executed-tests.json"
 
-Remove-Item testclasses.txt -ErrorAction SilentlyContinue
+if (!(Test-Path $historyFile)) {
+    '{"executedTests":{}}' | Out-File $historyFile
+}
 
-$changedFiles = git diff --name-only HEAD~1 HEAD
+$history = Get-Content $historyFile -Raw | ConvertFrom-Json
+
+if (Test-Path tests-to-run.txt) {
+    Remove-Item tests-to-run.txt
+}
+
+$changedFiles = git diff HEAD~1 HEAD --name-only
 
 foreach ($file in $changedFiles) {
 
@@ -16,15 +24,17 @@ foreach ($file in $changedFiles) {
 
     if ($diff -match '^\+.*@Test') {
 
-        Write-Host "Detected new @Test in $className"
+        $alreadyExecuted = $false
 
-        Add-Content testclasses.txt $className
+        if ($history.executedTests.PSObject.Properties.Name -contains $className) {
+            $alreadyExecuted = $true
+        }
+
+        if (-not $alreadyExecuted) {
+
+            Write-Host "New test detected in $className"
+
+            Add-Content tests-to-run.txt $className
+        }
     }
-}
-
-if (Test-Path testclasses.txt) {
-    Get-Content testclasses.txt
-}
-else {
-    Write-Host "No new @Test annotations found."
 }
