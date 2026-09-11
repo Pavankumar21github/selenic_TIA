@@ -14,6 +14,8 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Get Jira Issue Key
         shell: powershell
