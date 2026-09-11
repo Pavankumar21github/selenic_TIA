@@ -122,7 +122,7 @@ jobs:
           JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
         run: |
 
-          $issueKey = Get-Content issue.txt
+          $issueKey = (Get-Content issue.txt).Trim()
 
           if (Test-Path execution-status.txt) {
               $results = Get-Content execution-status.txt | Out-String
@@ -133,28 +133,27 @@ jobs:
 
           $buildUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          $comment = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nGitHub Run:`n$buildUrl"
+          $commentText = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nBuild: $buildUrl"
 
           $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
-          $base64 = [System.Convert]::ToBase64String($bytes)
+          $encoded = [Convert]::ToBase64String      [Text.Encoding]::ASCII.GetBytes($pair)
+          )
 
           $headers = @{
-              Authorization = "Basic $base64"
-              Accept = "application/json"
-              "Content-Type" = "application/json"
+              Authorization = "Basic $encoded"
           }
 
           $body = @{
-              body = $comment
-          } | ConvertTo-Json
+              body = $commentText
+          } | ConvertTo-Json -Compress
 
-          Write-Host "Updating Jira Issue: $issueKey"
+          Write-Host "Updating Jira issue $issueKey"
 
           Invoke-RestMethod `
-              -Uri "$($env:JIRA_URL)/rest/api/2/issue/$issueKey/comment" `
-              -Method POST `
-              -Headers $headers `
-              -Body $body
+            -Method Post `
+            -Uri "$($env:JIRA_URL)/rest/api/2/issue/$issueKey/comment" `
+            -Headers $headers `
+            -ContentType "application/json" `
+            -Body $body
 
-          Write-Host "Jira updated successfully."ly."
+          Write-Host "Jira update completed"
