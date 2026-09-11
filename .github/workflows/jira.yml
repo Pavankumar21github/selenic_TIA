@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Get Jira Issue Key
+      - name: Display Jira Payload
         shell: powershell
         run: |
 
@@ -30,7 +30,7 @@ jobs:
 
           $issueKey | Out-File issue.txt
 
-      - name: Find Matching Test Classes
+      - name: Find Matching WorkItem Classes
         shell: powershell
         run: |
 
@@ -59,13 +59,18 @@ jobs:
 
           if (!(Test-Path tests-to-run.txt)) {
 
-              throw "No test classes found for WorkItem $issueKey"
+              Write-Host ""
+              Write-Host "====================================="
+              Write-Host "NO MATCHING TESTS FOUND"
+              Write-Host "====================================="
+
+              throw "No test classes mapped to $issueKey"
 
           }
 
           Write-Host ""
           Write-Host "====================================="
-          Write-Host "TEST CLASSES TO EXECUTE"
+          Write-Host "MATCHING TEST CLASSES"
           Write-Host "====================================="
 
           Get-Content tests-to-run.txt
@@ -84,16 +89,16 @@ jobs:
               Write-Host "====================================="
 
               mvn test `
-              "-Dtest=$test" `
-              "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
-              "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+                "-Dtest=$test" `
+                "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+                "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
 
               if ($LASTEXITCODE -ne 0) {
                   throw "Execution failed for $test"
               }
           }
 
-      - name: Show Completion
+      - name: Completed
         shell: powershell
         run: |
 
