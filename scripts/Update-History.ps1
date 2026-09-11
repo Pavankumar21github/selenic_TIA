@@ -1,8 +1,14 @@
 $historyFile = ".history/executed-classes.json"
 
+if (!(Test-Path "tests-to-run.txt")) {
+
+    Write-Host "No tests executed."
+    exit 0
+}
+
 $history = Get-Content $historyFile -Raw | ConvertFrom-Json
 
-$tests = Get-Content tests-to-run.txt
+$tests = Get-Content "tests-to-run.txt"
 
 foreach ($test in $tests) {
 
@@ -14,14 +20,4 @@ foreach ($test in $tests) {
 
 $history | ConvertTo-Json -Depth 10 | Set-Content $historyFile
 
-git config user.name github-actions
-git config user.email github-actions@github.com
-
-git add .history/executed-classes.json
-
-git diff --cached --quiet
-
-if ($LASTEXITCODE -ne 0) {
-    git commit -m "Update execution history"
-    git push
-}
+Write-Host "Execution history updated."
