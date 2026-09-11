@@ -19,8 +19,8 @@ jobs:
         shell: powershell
         run: |
           $issueKey = "${{ github.event.client_payload.issueKey }}"
+          Set-Content issue.txt $issueKey
           Write-Host "Issue Key: $issueKey"
-          Set-Content -Path issue.txt -Value $issueKey
 
       - name: Find Matching WorkItem Classes
         shell: powershell
@@ -32,13 +32,18 @@ jobs:
             Remove-Item tests-to-run.txt
           }
 
-          Get-ChildItem -Path "src/test/java" -Recurse -Filter "*.java" | ForEach-Object {
+          Get-ChildItem `
+            -Path "src/test/java" `
+            -Recurse `
+            -Filter "*.java" |
+
+          ForEach-Object {
 
             $content = Get-Content $_.FullName -Raw
 
-            if ($content -match "id\s*=\s*`"$issueKey`"") {
+            if ($content.Contains('id="' + $issueKey + '"')) {
 
-              Write-Host "Found class: $($_.BaseName)"
+              Write-Host "Found: $($_.BaseName)"
 
               Add-Content tests-to-run.txt $_.BaseName
             }
@@ -47,10 +52,6 @@ jobs:
           if (!(Test-Path tests-to-run.txt)) {
             throw "No test classes found for $issueKey"
           }
-
-          Write-Host ""
-          Write-Host "Classes to execute:"
-          Get-Content tests-to-run.txt
 
       - name: Execute Matching Tests
         shell: powershell
@@ -64,8 +65,7 @@ jobs:
 
           foreach ($test in $tests) {
 
-            Write-Host ""
-            Write-Host "Executing $test"
+            Write-Host "Running $test"
 
             mvn test `
               "-Dtest=$test" `
@@ -78,18 +78,6 @@ jobs:
             else {
               Add-Content execution-status.txt "$test : FAILED"
             }
-          }
-
-      - name: Show Results
-        if: always()
-        shell: powershell
-        run: |
-
-          if (Test-Path execution-status.txt) {
-            Get-Content execution-status.txt
-          }
-          else {
-            Write-Host "No execution results"
           }
 
       - name: Upload Surefire Reports
@@ -106,34 +94,13 @@ jobs:
           name: selenic-reports
           path: D:\tias\selenic_report
 
-      - name: Upload Execution Status
+      - name: Update Jira
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: execution-status
-          path: execution-status.txt
-
-      - name: Verify Jira User
         shell: powershell
         env:
-            JIRA_URL: ${{ secrets.JIRA_URL }}
-            JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-            JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+          GITHUB_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-
-              $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
-              $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-              $encoded = [System.Convert]::ToBase64String($bytes)
-
-              $headers = @{
-              Authorization = "Basic $encoded"
-              Accept = "application/json"
-                }
- 
-              $me = Invoke-RestMethod `
-              -Method GET `
-              -Uri "$($env:JIRA_URL)/rest/api/3/myself" `
-              -Headers $headers
-
-              Write-Host "Logged in as:"
-              Write-Host $me.emailAddress
+          .\scripts\Update-Jira.ps1
