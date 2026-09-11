@@ -97,7 +97,27 @@ jobs:
               Add-Content execution-status.txt "$test : FAILED"
             }
           }
+    
+      - name: Debug Files
+        shell: powershell
+        run: |
 
+          Write-Host "Current directory:"
+          Get-Location
+
+          Write-Host "History exists:"
+          Test-Path .history/executed-classes.json
+
+          Write-Host "Tests file exists:"
+          Test-Path tests-to-run.txt
+
+          if (Test-Path tests-to-run.txt) {
+            Get-Content tests-to-run.txt
+          }
+
+
+
+     
       - name: Update Execution History
         if: success()
         shell: powershell
