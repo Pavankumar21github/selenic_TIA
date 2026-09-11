@@ -113,24 +113,27 @@ jobs:
           name: execution-status
           path: execution-status.txt
 
-      - name: Validate Jira User
+      - name: Verify Jira User
         shell: powershell
         env:
-          JIRA_URL: ${{ secrets.JIRA_URL }}
-          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+            JIRA_URL: ${{ secrets.JIRA_URL }}
+            JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+            JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
         run: |
 
-          $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
-          $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-          $encoded = [System.Convert]::ToBase64String($bytes)
+              $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
+              $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+              $encoded = [System.Convert]::ToBase64String($bytes)
 
-          $headers = @{
+              $headers = @{
               Authorization = "Basic $encoded"
               Accept = "application/json"
-          }
+                }
+ 
+              $me = Invoke-RestMethod `
+              -Method GET `
+              -Uri "$($env:JIRA_URL)/rest/api/3/myself" `
+              -Headers $headers
 
-          Invoke-RestMethod `
-            -Method GET `
-            -Uri "$($env:JIRA_URL)/rest/api/3/myself" `
-            -Headers $headers
+              Write-Host "Logged in as:"
+              Write-Host $me.emailAddress
