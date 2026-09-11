@@ -136,11 +136,12 @@ jobs:
           $commentText = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nBuild: $buildUrl"
 
           $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
-          $encoded = [Convert]::ToBase64String      [Text.Encoding]::ASCII.GetBytes($pair)
-          )
+          $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+          $encoded = [System.Convert]::ToBase64String($bytes)
 
           $headers = @{
               Authorization = "Basic $encoded"
+              Accept = "application/json"
           }
 
           $body = @{
@@ -149,11 +150,13 @@ jobs:
 
           Write-Host "Updating Jira issue $issueKey"
 
+          Write-Host $commentText
+
           Invoke-RestMethod `
-            -Method Post `
-            -Uri "$($env:JIRA_URL)/rest/api/2/issue/$issueKey/comment" `
-            -Headers $headers `
-            -ContentType "application/json" `
-            -Body $body
+              -Method Post `
+              -Uri "$($env:JIRA_URL)/rest/api/2/issue/$issueKey/comment" `
+              -Headers $headers `
+              -ContentType "application/json" `
+              -Body $body
 
           Write-Host "Jira update completed"
