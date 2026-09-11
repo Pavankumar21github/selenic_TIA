@@ -124,16 +124,12 @@ jobs:
 
           $issueKey = (Get-Content issue.txt).Trim()
 
-          if (Test-Path execution-status.txt) {
-              $results = Get-Content execution-status.txt | Out-String
-          }
-          else {
-              $results = "No execution results generated."
-          }
+          Write-Host "====================================="
+          Write-Host "JIRA VALIDATION"
+          Write-Host "====================================="
 
-          $buildUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          $commentText = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nBuild: $buildUrl"
+          Write-Host "Issue Key: $issueKey"
+          Write-Host "JIRA URL: $env:JIRA_URL"
 
           $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
           $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
@@ -144,51 +140,39 @@ jobs:
               Accept = "application/json"
           }
 
-          # Jira Cloud ADF comment format
-          $body = @{
-              body = @{
-                  type = "doc"
-                  version = 1
-                  content = @(
-                      @{
-                          type = "paragraph"
-                          content = @(
-                              @{
-                                  type = "text"
-                                  text = $commentText
-                              }
-                          )
-                      }
-                  )
-              }
-          } | ConvertTo-Json -Depth 20
+          $jiraIssueUrl = "$($env:JIRA_URL)/rest/api/3/issue/$issueKey"
 
-          $jiraCommentUrl = "$($env:JIRA_URL)/rest/api/3/issue/$issueKey/comment"
-
-          Write-Host ""
-          Write-Host "====================================="
-          Write-Host "JIRA DEBUG INFO"
-          Write-Host "====================================="
-          Write-Host "Issue Key: $issueKey"
-          Write-Host "JIRA URL: $($env:JIRA_URL)"
-          Write-Host "Comment URL: $jiraCommentUrl"
+          Write-Host "Calling:"
+          Write-Host $jiraIssueUrl
 
           try {
 
-              Invoke-RestMethod `
-                -Method POST `
-                -Uri $jiraCommentUrl `
-                -Headers $headers `
-                -ContentType "application/json" `
-                -Body $body
+              $response = Invoke-RestMethod `
+                  -Method GET `
+                  -Uri $jiraIssueUrl `
+                  -Headers $headers
 
-              Write-Host "Jira update completed successfully."
+              Write-Host ""
+              Write-Host "SUCCESS"
+              Write-Host "Issue Found:"
+              Write-Host $response.key
 
           }
           catch {
 
-              Write-Host "Jira update failed."
-              Write-Host $_.Exception.Message
+              Write-Host ""
+              Write-Host "FAILED"
+
+              if ($_.Exception.Response) {
+
+                  $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                  $reader.BaseStream.Position = 0
+                  $reader.DiscardBufferedData()
+                  $responseBody = $reader.ReadToEnd()
+
+                  Write-Host "Response Body:"
+                  Write-Host $responseBody
+              }
 
               throw
           }
