@@ -144,19 +144,51 @@ jobs:
               Accept = "application/json"
           }
 
+          # Jira Cloud ADF comment format
           $body = @{
-              body = $commentText
-          } | ConvertTo-Json -Compress
+              body = @{
+                  type = "doc"
+                  version = 1
+                  content = @(
+                      @{
+                          type = "paragraph"
+                          content = @(
+                              @{
+                                  type = "text"
+                                  text = $commentText
+                              }
+                          )
+                      }
+                  )
+              }
+          } | ConvertTo-Json -Depth 20
 
-          Write-Host "Updating Jira issue $issueKey"
+          $jiraCommentUrl = "$($env:JIRA_URL)/rest/api/3/issue/$issueKey/comment"
 
-          Write-Host $commentText
+          Write-Host ""
+          Write-Host "====================================="
+          Write-Host "JIRA DEBUG INFO"
+          Write-Host "====================================="
+          Write-Host "Issue Key: $issueKey"
+          Write-Host "JIRA URL: $($env:JIRA_URL)"
+          Write-Host "Comment URL: $jiraCommentUrl"
 
-          Invoke-RestMethod `
-              -Method Post `
-              -Uri "$($env:JIRA_URL)/rest/api/2/issue/$issueKey/comment" `
-              -Headers $headers `
-              -ContentType "application/json" `
-              -Body $body
+          try {
 
-          Write-Host "Jira update completed"
+              Invoke-RestMethod `
+                -Method POST `
+                -Uri $jiraCommentUrl `
+                -Headers $headers `
+                -ContentType "application/json" `
+                -Body $body
+
+              Write-Host "Jira update completed successfully."
+
+          }
+          catch {
+
+              Write-Host "Jira update failed."
+              Write-Host $_.Exception.Message
+
+              throw
+          }
