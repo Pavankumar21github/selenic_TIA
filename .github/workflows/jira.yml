@@ -6,7 +6,6 @@ on:
       - jira-assigned
 
 jobs:
-
   run-workitem-tests:
 
     runs-on: self-hosted
@@ -19,12 +18,9 @@ jobs:
       - name: Get Jira Issue Key
         shell: powershell
         run: |
-
           $issueKey = "${{ github.event.client_payload.issueKey }}"
-
           Write-Host "Issue Key: $issueKey"
-
-          $issueKey | Out-File issue.txt
+          Set-Content -Path issue.txt -Value $issueKey
 
       - name: Find Matching WorkItem Classes
         shell: powershell
@@ -32,66 +28,68 @@ jobs:
 
           $issueKey = Get-Content issue.txt
 
-          Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
+          if (Test-Path tests-to-run.txt) {
+            Remove-Item tests-to-run.txt
+          }
 
-          Get-ChildItem `
-            -Path "src/test/java" `
-            -Recurse `
-            -Filter "*.java" |
+          Get-ChildItem -Path "src/test/java" -Recurse -Filter "*.java" | ForEach-Object {
 
-          ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
 
-              $content = Get-Content $_.FullName -Raw
+            if ($content -match "id\s*=\s*`"$issueKey`"") {
 
-              if ($content -match "id\s*=\s*`"$issueKey`"") {
+              Write-Host "Found class: $($_.BaseName)"
 
-                  Write-Host "Found: $($_.BaseName)"
-
-                  Add-Content tests-to-run.txt $_.BaseName
-              }
+              Add-Content tests-to-run.txt $_.BaseName
+            }
           }
 
           if (!(Test-Path tests-to-run.txt)) {
-              throw "No test classes found for $issueKey"
+            throw "No test classes found for $issueKey"
           }
 
+          Write-Host ""
+          Write-Host "Classes to execute:"
           Get-Content tests-to-run.txt
 
       - name: Execute Matching Tests
         shell: powershell
         run: |
 
-          Remove-Item execution-status.txt -ErrorAction SilentlyContinue
+          if (Test-Path execution-status.txt) {
+            Remove-Item execution-status.txt
+          }
 
           $tests = Get-Content tests-to-run.txt
 
           foreach ($test in $tests) {
 
-              Write-Host ""
-              Write-Host "Running $test"
+            Write-Host ""
+            Write-Host "Executing $test"
 
-              mvn test `
-                "-Dtest=$test" `
-                "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
-                "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+            mvn test `
+              "-Dtest=$test" `
+              "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+              "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
 
-              if ($LASTEXITCODE -eq 0) {
-                  Add-Content execution-status.txt "$test : PASSED"
-              }
-              else {
-                  Add-Content execution-status.txt "$test : FAILED"
-              }
+            if ($LASTEXITCODE -eq 0) {
+              Add-Content execution-status.txt "$test : PASSED"
+            }
+            else {
+              Add-Content execution-status.txt "$test : FAILED"
+            }
           }
 
       - name: Show Results
+        if: always()
         shell: powershell
         run: |
 
-          Write-Host ""
-          Write-Host "==== EXECUTION RESULTS ===="
-
           if (Test-Path execution-status.txt) {
-              Get-Content execution-status.txt
+            Get-Content execution-status.txt
+          }
+          else {
+            Write-Host "No execution results"
           }
 
       - name: Upload Surefire Reports
@@ -115,3 +113,37 @@ jobs:
           name: execution-status
           path: execution-status.txt
 
+      - name: Update Jira
+        if: always()
+        shell: powershell
+        env:
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+        run: |
+
+          $issueKey = Get-Content issue.txt
+
+          if (Test-Path execution-status.txt) {
+            $results = Get-Content execution-status.txt | Out-String
+          }
+          else {
+            $results = "No execution results generated."
+          }
+
+          $buildUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          $commentText = "Automated Test Execution Results`n`nIssue: $issueKey`n`n$results`nGitHub Run:`n$buildUrl"
+
+          $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
+          $encoded = [System.Convert]::ToBase64String($bytes)
+
+          $headers = @{
+            Authorization = "Basic $encoded"
+            Accept = "application/json"
+            "Content-Type" = "application/json"
+          }
+
+          $body = @{
+ 
