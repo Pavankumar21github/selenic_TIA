@@ -1,0 +1,15 @@
+name: Jira Trigger
+
+on:
+  repository_dispatch:
+    types:
+      - jira-assigned
+
+jobs:
+  test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Show Payload
+        run: |
+          echo "${{ github.event.client_payload.issueKey }}"
