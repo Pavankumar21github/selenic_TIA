@@ -16,17 +16,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Display Jira Payload
+      - name: Get Jira Issue Key
         shell: powershell
         run: |
 
           $issueKey = "${{ github.event.client_payload.issueKey }}"
 
-          Write-Host ""
-          Write-Host "====================================="
-          Write-Host "JIRA ISSUE RECEIVED"
-          Write-Host "====================================="
-          Write-Host $issueKey
+          Write-Host "Issue Key: $issueKey"
 
           $issueKey | Out-File issue.txt
 
@@ -49,29 +45,15 @@ jobs:
 
               if ($content -match "id\s*=\s*`"$issueKey`"") {
 
-                  Write-Host ""
-                  Write-Host "Found matching class:"
-                  Write-Host $_.BaseName
+                  Write-Host "Found: $($_.BaseName)"
 
                   Add-Content tests-to-run.txt $_.BaseName
               }
           }
 
           if (!(Test-Path tests-to-run.txt)) {
-
-              Write-Host ""
-              Write-Host "====================================="
-              Write-Host "NO MATCHING TESTS FOUND"
-              Write-Host "====================================="
-
-              throw "No test classes mapped to $issueKey"
-
+              throw "No test classes found for $issueKey"
           }
-
-          Write-Host ""
-          Write-Host "====================================="
-          Write-Host "MATCHING TEST CLASSES"
-          Write-Host "====================================="
 
           Get-Content tests-to-run.txt
 
@@ -79,30 +61,57 @@ jobs:
         shell: powershell
         run: |
 
+          Remove-Item execution-status.txt -ErrorAction SilentlyContinue
+
           $tests = Get-Content tests-to-run.txt
 
           foreach ($test in $tests) {
 
               Write-Host ""
-              Write-Host "====================================="
-              Write-Host "EXECUTING $test"
-              Write-Host "====================================="
+              Write-Host "Running $test"
 
               mvn test `
                 "-Dtest=$test" `
                 "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
                 "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
 
-              if ($LASTEXITCODE -ne 0) {
-                  throw "Execution failed for $test"
+              if ($LASTEXITCODE -eq 0) {
+                  Add-Content execution-status.txt "$test : PASSED"
+              }
+              else {
+                  Add-Content execution-status.txt "$test : FAILED"
               }
           }
 
-      - name: Completed
+      - name: Show Results
         shell: powershell
         run: |
 
           Write-Host ""
-          Write-Host "====================================="
-          Write-Host "EXECUTION COMPLETED"
-          Write-Host "====================================="
+          Write-Host "==== EXECUTION RESULTS ===="
+
+          if (Test-Path execution-status.txt) {
+              Get-Content execution-status.txt
+          }
+
+      - name: Upload Surefire Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+
+      - name: Upload Selenic Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenic-reports
+          path: D:\tias\selenic_report
+
+      - name: Upload Execution Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: execution-status
+          path: execution-status.txt
+`
