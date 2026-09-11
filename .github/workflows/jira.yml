@@ -45,20 +45,27 @@ jobs:
 
               Write-Host "Found: $($_.BaseName)"
 
-              Add-Content tests-to-run.txt $_.BaseName
+              Add-Content matching-classes.txt $_.BaseName
             }
           }
 
-          if (!(Test-Path tests-to-run.txt)) {
-            throw "No test classes found for $issueKey"
-          }
+          if (Test-Path matching-classes.txt) {
+            Remove-Item matching-classes.txt
+             }
 
-      - name: Execute Matching Tests
+      - name: Detect New Tests
+        shell: powershell
+        run: |
+          .\scripts\Detect-NewTests.ps1
+
+      - name: Execute New Tests
         shell: powershell
         run: |
 
-          if (Test-Path execution-status.txt) {
-            Remove-Item execution-status.txt
+          if (!(Test-Path tests-to-run.txt)) {
+
+            Write-Host "No new tests detected."
+            exit 0
           }
 
           $tests = Get-Content tests-to-run.txt
@@ -79,6 +86,12 @@ jobs:
               Add-Content execution-status.txt "$test : FAILED"
             }
           }
+
+      - name: Update Execution History
+        if: success()
+        shell: powershell
+        run: |
+          .\scripts\Update-History.ps1
 
       - name: Upload Surefire Reports
         if: always()
