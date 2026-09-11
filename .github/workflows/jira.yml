@@ -6,10 +6,98 @@ on:
       - jira-assigned
 
 jobs:
-  test:
+
+  run-workitem-tests:
+
     runs-on: self-hosted
 
     steps:
-      - name: Show Payload
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get Jira Issue Key
+        shell: powershell
         run: |
-          echo "${{ github.event.client_payload.issueKey }}"
+
+          $issueKey = "${{ github.event.client_payload.issueKey }}"
+
+          Write-Host ""
+          Write-Host "====================================="
+          Write-Host "JIRA ISSUE RECEIVED"
+          Write-Host "====================================="
+          Write-Host $issueKey
+
+          $issueKey | Out-File issue.txt
+
+      - name: Find Matching Test Classes
+        shell: powershell
+        run: |
+
+          $issueKey = Get-Content issue.txt
+
+          Remove-Item tests-to-run.txt -ErrorAction SilentlyContinue
+
+          Get-ChildItem `
+            -Path "src/test/java" `
+            -Recurse `
+            -Filter "*.java" |
+
+          ForEach-Object {
+
+              $content = Get-Content $_.FullName -Raw
+
+              if ($content -match "id\s*=\s*`"$issueKey`"") {
+
+                  Write-Host ""
+                  Write-Host "Found matching class:"
+                  Write-Host $_.BaseName
+
+                  Add-Content tests-to-run.txt $_.BaseName
+              }
+          }
+
+          if (!(Test-Path tests-to-run.txt)) {
+
+              throw "No test classes found for WorkItem $issueKey"
+
+          }
+
+          Write-Host ""
+          Write-Host "====================================="
+          Write-Host "TEST CLASSES TO EXECUTE"
+          Write-Host "====================================="
+
+          Get-Content tests-to-run.txt
+
+      - name: Execute Matching Tests
+        shell: powershell
+        run: |
+
+          $tests = Get-Content tests-to-run.txt
+
+          foreach ($test in $tests) {
+
+              Write-Host ""
+              Write-Host "====================================="
+              Write-Host "EXECUTING $test"
+              Write-Host "====================================="
+
+              mvn test `
+              "-Dtest=$test" `
+              "-DargLine=-javaagent:D:\parasoft_selenic_2026.1.0\selenic_agent.jar=captureDOM=true,screenshot=failures,selfHealing=true,createAPITests=false" `
+              "-Dwebdriver.chrome.driver=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Execution failed for $test"
+              }
+          }
+
+      - name: Show Completion
+        shell: powershell
+        run: |
+
+          Write-Host ""
+          Write-Host "====================================="
+          Write-Host "EXECUTION COMPLETED"
+          Write-Host "====================================="
