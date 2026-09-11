@@ -113,23 +113,13 @@ jobs:
           name: execution-status
           path: execution-status.txt
 
-      - name: Update Jira
-        if: always()
+      - name: Validate Jira User
         shell: powershell
         env:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
         run: |
-
-          $issueKey = (Get-Content issue.txt).Trim()
-
-          Write-Host "====================================="
-          Write-Host "JIRA VALIDATION"
-          Write-Host "====================================="
-
-          Write-Host "Issue Key: $issueKey"
-          Write-Host "JIRA URL: $env:JIRA_URL"
 
           $pair = "$($env:JIRA_EMAIL):$($env:JIRA_TOKEN)"
           $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
@@ -140,39 +130,7 @@ jobs:
               Accept = "application/json"
           }
 
-          $jiraIssueUrl = "$($env:JIRA_URL)/rest/api/3/issue/$issueKey"
-
-          Write-Host "Calling:"
-          Write-Host $jiraIssueUrl
-
-          try {
-
-              $response = Invoke-RestMethod `
-                  -Method GET `
-                  -Uri $jiraIssueUrl `
-                  -Headers $headers
-
-              Write-Host ""
-              Write-Host "SUCCESS"
-              Write-Host "Issue Found:"
-              Write-Host $response.key
-
-          }
-          catch {
-
-              Write-Host ""
-              Write-Host "FAILED"
-
-              if ($_.Exception.Response) {
-
-                  $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-                  $reader.BaseStream.Position = 0
-                  $reader.DiscardBufferedData()
-                  $responseBody = $reader.ReadToEnd()
-
-                  Write-Host "Response Body:"
-                  Write-Host $responseBody
-              }
-
-              throw
-          }
+          Invoke-RestMethod `
+            -Method GET `
+            -Uri "$($env:JIRA_URL)/rest/api/3/myself" `
+            -Headers $headers
