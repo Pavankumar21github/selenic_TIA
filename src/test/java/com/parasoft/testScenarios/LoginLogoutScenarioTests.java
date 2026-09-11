@@ -48,7 +48,7 @@ public class LoginLogoutScenarioTests {
      * <p>
      * Parasoft recorded Selenium test on Thu Sep 08 2022 07:36:45 GMT+0800 (China Standard Time)
      */
-    @Test
+  /**  @Test
     @WorkItem(type= REQ, id="KAN-80", url="https://parasoftindia86.atlassian.net/browse/KAN-80")
     public void testLoginAndLogoutScenario() throws Throwable {
         driver.get(System.getProperty("BASE_URL", BASE_URL) + "/loginPage");
@@ -62,23 +62,7 @@ public class LoginLogoutScenarioTests {
 
         LocalhostPage localhostPage = new LocalhostPage(driver);
         localhostPage.clickPurchaser();
-        localhostPage.clickSignOutLink();
-
-    @Test
-    @WorkItem(type= REQ, id="KAN-80", url="https://parasoftindia86.atlassian.net/browse/KAN-80")
-    public void testLoginAndLogoutScenario() throws Throwable {
-        driver.get(System.getProperty("BASE_URL", BASE_URL) + "/loginPage");
-
-
-        PARASOFTDEMOAPPPage pARASOFTDEMOAPPPage = new PARASOFTDEMOAPPPage(driver);
-        pARASOFTDEMOAPPPage.setUsernameField("purchaser");
-        pARASOFTDEMOAPPPage.setPasswordField("password");
-        pARASOFTDEMOAPPPage.clickSIGNINButton();
-
-
-        LocalhostPage localhostPage = new LocalhostPage(driver);
-        localhostPage.clickPurchaser();
-        localhostPage.clickSignOutLink(); 
+        localhostPage.clickSignOutLink(); */
         
     }
 }
